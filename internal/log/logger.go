@@ -6,7 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/tech-a-go-go/timeseries-aggregator/internal/config"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/config"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

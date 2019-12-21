@@ -1,4 +1,4 @@
-module github.com/tech-a-go-go/timeseries-aggregator
+module github.com/tech-a-go-go/broker-timeseries-aggregator
 
 go 1.13
 

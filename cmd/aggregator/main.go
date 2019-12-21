@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/tech-a-go-go/timeseries-aggregator/internal/log"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/log"
 )
 
 var logger = log.GetLogger()
