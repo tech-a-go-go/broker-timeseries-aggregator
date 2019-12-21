@@ -1,0 +1,3 @@
+# application 一般のログ
+log:
+  file: "./logs/aggregator.log"

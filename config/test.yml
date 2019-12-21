@@ -1,0 +1,3 @@
+# application 一般のログ
+log:
+  file: "testでのログはファイルには出力されず os.Stdout へ強制的に出力される."
