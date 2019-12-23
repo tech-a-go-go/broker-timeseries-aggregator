@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/clock"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/log"
 )
 
@@ -18,6 +19,6 @@ func main() {
 	// 	fmt.Printf("%s\n", f)
 	// }
 
-	aggr := aggregator.NewAggregator(aggregator.BrokerType_Bitflyer, "./datda/bitflyer-20d19*.log")
+	aggr := aggregator.NewAggregator(aggregator.BrokerType_Bitflyer, []clock.TimeSpan{clock.TimeSpan{Value: 1, Span: clock.SPAN_SECOND}}, "./data/broker.bitflyer-2019*.gz")
 	aggr.Start()
 }

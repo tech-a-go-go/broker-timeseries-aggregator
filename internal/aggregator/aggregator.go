@@ -1,12 +1,13 @@
 package aggregator
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers/bitflyer"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers/bitmex"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/loader"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/clock"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/log"
 )
 
@@ -19,30 +20,23 @@ const (
 	BrokerType_Bitmex
 )
 
-var timeSeriesResolutions = []time.Duration{
-	1 * time.Minute,
-	3 * time.Minute,
-	5 * time.Minute,
-	15 * time.Minute,
-	30 * time.Minute,
-	1 * time.Hour,
-}
-
 type Aggregator struct {
 	broker     BrokerType
+	spans      []clock.TimeSpan
 	dataLoader *loader.DataLoader
 }
 
-func NewAggregator(broker BrokerType, dataPath string) *Aggregator {
+func NewAggregator(broker BrokerType, spans []clock.TimeSpan, dataPath string) *Aggregator {
 	return &Aggregator{
 		broker:     broker,
+		spans:      spans,
 		dataLoader: loader.NewDataLoader(dataPath),
 	}
 }
 
 func (a *Aggregator) getBrokerParser() brokers.BrokerParserInterface {
 	if a.broker == BrokerType_Bitflyer {
-		return &bitflyer.Parser{}
+		return bitflyer.NewParser()
 	} else if a.broker == BrokerType_Bitmex {
 		return &bitmex.Parser{}
 	}
@@ -59,16 +53,19 @@ func (a *Aggregator) Start() {
 		logger.Info().Msg("archives not found. exit.")
 		return
 	}
+	go a.dataLoader.Load()
+
 	a.startLoop()
 }
 
 func (a *Aggregator) startLoop() {
 	brokerParser := a.getBrokerParser()
-	_ = brokerParser
 	dataCh := a.dataLoader.GetDataCh()
 	endCh := a.dataLoader.GetEndCh()
 	var stats []*brokers.ExecStat
 	var err error
+	allStats := make([]*brokers.ExecStat, 100)
+	i := 0
 L:
 	for {
 		select {
@@ -76,23 +73,29 @@ L:
 			if len(data) == 0 {
 				break
 			}
-
+			i++
+			if i%10000 == 0 {
+				fmt.Println(i)
+			}
 			stats, err = brokerParser.Parse(data)
 
 			if err != nil {
-				logger.Error().Err(err).Msg("Error on brokerParser.Parse()")
+				//logger.Error().Err(err).Msg("Error on brokerParser.Parse()")
 				break
 			}
 
 			for _, stat := range stats {
 				_ = stat
+				// allStats = append(allStats, stat)
 				// 1m, 5m, 10m,
 				// price = open, close, max, min
 				// volume = sum
+				//stat.
 			}
 
 		case <-endCh:
 			break L
 		}
 	}
+	fmt.Printf("all stats = %v\n", len(allStats))
 }

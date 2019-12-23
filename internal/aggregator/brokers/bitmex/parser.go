@@ -7,6 +7,6 @@ import (
 type Parser struct {
 }
 
-func (p *Parser) Parse(json []byte) ([]*brokers.ExecStat, error) {
+func (p *Parser) Parse(jsonBytes []byte) ([]*brokers.ExecStat, error) {
 	return nil, nil
 }

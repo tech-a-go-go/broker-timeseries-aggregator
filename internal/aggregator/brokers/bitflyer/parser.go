@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/clock"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/json"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/util"
 	"github.com/valyala/fastjson"
@@ -59,8 +60,8 @@ func (p *Parser) Parse(jsonBytes []byte) ([]*brokers.ExecStat, error) {
 	execValues := value.GetArray("params", "message")
 	execStats := make([]*brokers.ExecStat, 0, len(execValues))
 	for _, execValue := range execValues {
-		execStat := brokers.GetExecStat()
-
+		// execStat := brokers.GetExecStat()
+		execStat := &brokers.ExecStat{}
 		execDataBytes, err := execValue.Get("exec_date").StringBytes()
 		if err != nil {
 			return nil, err
@@ -70,7 +71,7 @@ func (p *Parser) Parse(jsonBytes []byte) ([]*brokers.ExecStat, error) {
 			return nil, err
 		}
 		tsInJST := tsInUTC.In(p.location)
-		timestamp := brokers.MakeSimpleTime(tsInJST)
+		timestamp := clock.MakeSimpleTime(tsInJST)
 		execStat.Ts = timestamp
 		sideBytes, err := execValue.Get("side").StringBytes()
 		if err != nil {
