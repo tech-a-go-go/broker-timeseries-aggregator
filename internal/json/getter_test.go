@@ -1,12 +1,10 @@
 package json
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/shopspring/decimal"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/util"
-	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fastjson"
 )
 
@@ -30,10 +28,7 @@ func TestGetStringInJson(t *testing.T) {
 	for _, tt := range test {
 		//buf = buf[:0]
 		param := util.Bytes(tt.param)
-		fmt.Printf("1 %s\n", buf)
 		value, endOffset, ok := GetStringInJson(util.Bytes(tt.jsonStr), param, 0, buf)
-		fmt.Printf("2 %s\n", buf)
-		fmt.Printf("3 %s\n", value)
 		if ok == tt.ok {
 			if ok {
 				if util.String(value) != tt.value {
@@ -67,9 +62,9 @@ func TestGetNumberInJson(t *testing.T) {
 		{`{}`, "0", 0, false},
 	}
 	idBytes := util.Bytes("id")
-	buf := bytebufferpool.Get()
+	var bytes [64]byte
+	buf := bytes[:0]
 	for _, tt := range test {
-		buf.Reset()
 		idValue, endOffset, ok := GetNumberInJson(util.Bytes(tt.jsonStr), idBytes, 0, buf)
 		if ok == tt.ok {
 			if ok {

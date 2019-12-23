@@ -67,6 +67,8 @@ func (a *Aggregator) startLoop() {
 	_ = brokerParser
 	dataCh := a.dataLoader.GetDataCh()
 	endCh := a.dataLoader.GetEndCh()
+	var stats []*brokers.ExecStat
+	var err error
 L:
 	for {
 		select {
@@ -75,10 +77,19 @@ L:
 				break
 			}
 
-			// 1m, 5m, 10m,
-			// price = open, close, max, min
-			// volume = sum
-			//parsedValues, err := brokerParser.Parse(data)
+			stats, err = brokerParser.Parse(data)
+
+			if err != nil {
+				logger.Error().Err(err).Msg("Error on brokerParser.Parse()")
+				break
+			}
+
+			for _, stat := range stats {
+				_ = stat
+				// 1m, 5m, 10m,
+				// price = open, close, max, min
+				// volume = sum
+			}
 
 		case <-endCh:
 			break L

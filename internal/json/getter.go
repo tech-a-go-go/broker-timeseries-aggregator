@@ -1,9 +1,5 @@
 package json
 
-import (
-	"github.com/valyala/bytebufferpool"
-)
-
 func GetStringInJson(jsonBytes []byte, param []byte, startOffset int, buf []byte) (stringValue []byte, endIndex int, ok bool) {
 	jsonLen := len(jsonBytes)
 	if startOffset >= jsonLen-1 {
@@ -44,7 +40,7 @@ func GetStringInJson(jsonBytes []byte, param []byte, startOffset int, buf []byte
 	return
 }
 
-func GetNumberInJson(jsonBytes []byte, param []byte, startOffset int, buf *bytebufferpool.ByteBuffer) (numberValue []byte, endIndex int, ok bool) {
+func GetNumberInJson(jsonBytes []byte, param []byte, startOffset int, buf []byte) (numberValue []byte, endIndex int, ok bool) {
 	jsonLen := len(jsonBytes)
 	if startOffset >= jsonLen-1 {
 		return
@@ -64,21 +60,20 @@ func GetNumberInJson(jsonBytes []byte, param []byte, startOffset int, buf *byteb
 			if !matched {
 				continue
 			}
-			numBytes := bytebufferpool.Get()
 			for j := i + 1; j < jsonLen; j++ {
 				if ('0' <= jsonBytes[j] && jsonBytes[j] <= '9') || jsonBytes[j] == '.' || jsonBytes[j] == '+' || jsonBytes[j] == '-' || jsonBytes[j] == 'e' || jsonBytes[j] == 'E' {
-					numBytes.WriteByte(jsonBytes[j])
+					buf = append(buf, jsonBytes[j])
+					// numBytes.WriteByte(jsonBytes[j])
 				} else {
-					if numBytes.Len() > 0 {
+					if len(buf) > 0 {
 						ok = true
-						numberValue = numBytes.B
+						numberValue = buf
 						endIndex = j
 						break
 					}
 					break
 				}
 			}
-			bytebufferpool.Put(numBytes)
 			return
 		}
 	}
