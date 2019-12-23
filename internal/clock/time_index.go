@@ -16,10 +16,10 @@ const (
 // TimeIndex は January 1, 1970 UTC からのTimeSpan間隔での番号(順番)を表す
 type TimeIndex struct {
 	TimeSpan TimeSpan
-	Index    int64 //
+	Index    int64 // 番号(順番)
 }
 
-func (t *TimeIndex) Equal(t2 *TimeIndex) bool {
+func (t *TimeIndex) Equal(t2 TimeIndex) bool {
 	if t.TimeSpan.Value == t2.TimeSpan.Value && t.TimeSpan.Span == t2.TimeSpan.Span && t.Index == t2.Index {
 		return true
 	}

@@ -65,6 +65,10 @@ func (a *Aggregator) startLoop() {
 	var stats []*brokers.ExecStat
 	var err error
 	allStats := make([]*brokers.ExecStat, 100)
+	// var aggregatedStats map[clock.TimeSpan][]*brokers.AggregatedStat
+	// var processingSpans map[clock.TimeSpan]*brokers.AggregatedStat
+	aggregatedStats := make(map[clock.TimeSpan][]*brokers.AggregatedStat)
+	processingSpans := make(map[clock.TimeSpan]*brokers.AggregatedStat)
 	i := 0
 L:
 	for {
@@ -85,13 +89,31 @@ L:
 			}
 
 			for _, stat := range stats {
-				_ = stat
-				// allStats = append(allStats, stat)
-				// 1m, 5m, 10m,
-				// price = open, close, max, min
-				// volume = sum
-				//stat.
+				for _, span := range a.spans {
+					aggreStat, found := processingSpans[span]
+					if !found {
+						timeIndex := stat.GetTimeIndex(span)
+						aggreStat = brokers.NewAggregatedStat(timeIndex)
+						processingSpans[span] = aggreStat
+					} else {
+						timeIndex := stat.GetTimeIndex(span)
+						aggreTimeIndex := aggreStat.TimeIndex
+						if aggreTimeIndex.Equal(timeIndex) {
+							// TODO: aggreStateが現在のtimeIndexと同じなのでaggreTimeIndexを必要があれば更新する
+						} else {
+							// TODO: for-loopでaggreTimeIndexのIndexがtimeIndexになるまでIndexをインクリメントしたaggreStatを作成して保存
+						}
+					}
+
+				}
+
 			}
+
+			// allStats = append(allStats, stat)
+			// 1m, 5m, 10m,
+			// price = open, close, max, min
+			// volume = sum
+			//stat.
 
 		case <-endCh:
 			break L

@@ -25,6 +25,30 @@ type ExecStat struct {
 	SizeOk  bool
 }
 
-func (e *ExecStat) GetTimeIndex(value int64, span clock.SPAN) clock.TimeIndex {
-	return e.Ts.MakeTimeIndex(value, span)
+func (e *ExecStat) GetTimeIndex(timeSpan clock.TimeSpan) clock.TimeIndex {
+	return e.Ts.MakeTimeIndex(timeSpan.Value, timeSpan.Span)
+}
+
+type AggregatedStat struct {
+	TimeIndex clock.TimeIndex
+	Open      decimal.Decimal
+	Close     decimal.Decimal
+	Min       decimal.Decimal
+	Max       decimal.Decimal
+	Size      decimal.Decimal
+	BuySize   decimal.Decimal
+	SellSize  decimal.Decimal
+}
+
+func NewAggregatedStat(timeIndex clock.TimeIndex) *AggregatedStat {
+	return &AggregatedStat{
+		TimeIndex: timeIndex,
+		Open:      decimal.Zero,
+		Close:     decimal.Zero,
+		Min:       decimal.Zero,
+		Max:       decimal.Zero,
+		Size:      decimal.Zero,
+		BuySize:   decimal.Zero,
+		SellSize:  decimal.Zero,
+	}
 }
