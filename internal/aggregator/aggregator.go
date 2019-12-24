@@ -7,6 +7,7 @@ import (
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers/bitflyer"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers/bitmex"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/loader"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/types"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/clock"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/log"
 )
@@ -62,13 +63,17 @@ func (a *Aggregator) startLoop() {
 	brokerParser := a.getBrokerParser()
 	dataCh := a.dataLoader.GetDataCh()
 	endCh := a.dataLoader.GetEndCh()
-	var stats []*brokers.ExecStat
+	var execStats []*types.ExecStat
 	var err error
-	allStats := make([]*brokers.ExecStat, 100)
+	allStats := make([]*types.ExecStat, 100)
 	// var aggregatedStats map[clock.TimeSpan][]*brokers.AggregatedStat
 	// var processingSpans map[clock.TimeSpan]*brokers.AggregatedStat
-	aggregatedStats := make(map[clock.TimeSpan][]*brokers.AggregatedStat)
-	processingSpans := make(map[clock.TimeSpan]*brokers.AggregatedStat)
+	execStatSpanMap := make(map[clock.TimeSpan][][]*types.ExecStat)
+	// TimeSpan毎に集約するデータを保存する配列を用意
+	for _, span := range a.spans {
+		execStatSpanMap[span] = make([][]*types.ExecStat, 128)
+	}
+
 	i := 0
 L:
 	for {
@@ -81,29 +86,34 @@ L:
 			if i%10000 == 0 {
 				fmt.Println(i)
 			}
-			stats, err = brokerParser.Parse(data)
+			execStats, err = brokerParser.Parse(data)
 
 			if err != nil {
 				//logger.Error().Err(err).Msg("Error on brokerParser.Parse()")
 				break
 			}
 
-			for _, stat := range stats {
-				for _, span := range a.spans {
-					aggreStat, found := processingSpans[span]
+			// 1m = 1 2 3
+			// 5m = 1 2 3
+			for _, execStat := range execStats {
+				for _, span := range a.spans { // 1m, 5m, ...
+					aggreStat, found := execStatSpanMap[span]
+					_ = aggreStat
 					if !found {
-						timeIndex := stat.GetTimeIndex(span)
-						aggreStat = brokers.NewAggregatedStat(timeIndex)
-						processingSpans[span] = aggreStat
-					} else {
-						timeIndex := stat.GetTimeIndex(span)
-						aggreTimeIndex := aggreStat.TimeIndex
-						if aggreTimeIndex.Equal(timeIndex) {
-							// TODO: aggreStateが現在のtimeIndexと同じなのでaggreTimeIndexを必要があれば更新する
-						} else {
-							// TODO: for-loopでaggreTimeIndexのIndexがtimeIndexになるまでIndexをインクリメントしたaggreStatを作成して保存
-						}
+						timeIndex := execStat.GetTimeIndex(span)
+						aggreStat := types.NewAggregatedStat(timeIndex)
+						_ = aggreStat
+						// processingSpans[span] = aggreStat
 					}
+					execTimeIndex := execStat.GetTimeIndex(span)
+					_ = execTimeIndex
+					// aggreTimeIndex := aggreStat.TimeIndex
+					// if execTimeIndex.Equal(aggreTimeIndex) {
+
+					// 	// TODO: aggreStateが現在のtimeIndexと同じなのでaggreTimeIndexを必要があれば更新する
+					// } else {
+					// 	// TODO: for-loopでaggreTimeIndexのIndexがtimeIndexになるまでIndexをインクリメントしたaggreStatを作成して保存
+					// }
 
 				}
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
-	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers"
+	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/types"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/clock"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/json"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/util"
@@ -36,7 +36,7 @@ func NewParser() *Parser {
 	"params":{"channel":"lightning_executions_FX_BTC_JPY",
 	"message":[{"id":1474698784,"side":"BUY","price":795009.0,"size":0.02,"exec_date":"2019-12-22T13:07:34.8995155Z","buy_child_order_acceptance_id":"JRF20191222-130734-472319","sell_child_order_acceptance_id":"JRF20191222-130734-064154"},{"id":1474698785,"side":"BUY","price":795017.0,"size":0.06,"exec_date":"2019-12-22T13:07:34.8995155Z","buy_child_order_acceptance_id":"JRF20191222-130734-472319","sell_child_order_acceptance_id":"JRF20191222-130734-399460"},{"id":1474698786,"side":"BUY","price":795033.0,"size":0.10501928,"exec_date":"2019-12-22T13:07:34.8995155Z","buy_child_order_acceptance_id":"JRF20191222-130734-472319","sell_child_order_acceptance_id":"JRF20191222-130733-472314"},{"id":1474698787,"side":"BUY","price":795036.0,"size":0.01,"exec_date":"2019-12-22T13:07:34.8995155Z","buy_child_order_acceptance_id":"JRF20191222-130734-472319","sell_child_order_acceptance_id":"JRF20191222-130732-399445"},{"id":1474698788,"side":"BUY","price":795036.0,"size":0.18081405,"exec_date":"2019-12-22T13:07:34.8995155Z","buy_child_order_acceptance_id":"JRF20191222-130734-472319","sell_child_order_acceptance_id":"JRF20191222-130733-523010"},{"id":1474698789,"side":"SELL","price":794961.0,"size":0.01,"exec_date":"2019-12-22T13:07:34.9151456Z","buy_child_order_acceptance_id":"JRF20191222-130733-037464","sell_child_order_acceptance_id":"JRF20191222-130734-523014"}]}}
 */
-func (p *Parser) Parse(jsonBytes []byte) ([]*brokers.ExecStat, error) {
+func (p *Parser) Parse(jsonBytes []byte) ([]*types.ExecStat, error) {
 	var bufBytes [64]byte
 	buf := bufBytes[:0]
 	channel, _, ok := json.GetStringInJson(jsonBytes, util.Bytes("channel"), 0, buf)
@@ -58,10 +58,10 @@ func (p *Parser) Parse(jsonBytes []byte) ([]*brokers.ExecStat, error) {
 	// }
 	// timestamp := brokers.MakeSimpleTime(ts)
 	execValues := value.GetArray("params", "message")
-	execStats := make([]*brokers.ExecStat, 0, len(execValues))
+	execStats := make([]*types.ExecStat, 0, len(execValues))
 	for _, execValue := range execValues {
 		// execStat := brokers.GetExecStat()
-		execStat := &brokers.ExecStat{}
+		execStat := &types.ExecStat{}
 		execDataBytes, err := execValue.Get("exec_date").StringBytes()
 		if err != nil {
 			return nil, err
@@ -78,9 +78,9 @@ func (p *Parser) Parse(jsonBytes []byte) ([]*brokers.ExecStat, error) {
 			return nil, errors.Wrap(err, tsInJST.String())
 		}
 		if util.String(sideBytes) == "BUY" {
-			execStat.Side = brokers.SIDE_BUY
+			execStat.Side = types.SIDE_BUY
 		} else {
-			execStat.Side = brokers.SIDE_SELL
+			execStat.Side = types.SIDE_SELL
 		}
 		price, err := execValue.Get("price").Float64()
 		if err != nil {
