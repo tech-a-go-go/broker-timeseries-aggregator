@@ -5,7 +5,6 @@ import (
 
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers/bitflyer"
-	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/brokers/bitmex"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/loader"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/aggregator/types"
 	"github.com/tech-a-go-go/broker-timeseries-aggregator/internal/clock"
@@ -39,7 +38,7 @@ func (a *Aggregator) getBrokerParser() brokers.BrokerParserInterface {
 	if a.broker == BrokerType_Bitflyer {
 		return bitflyer.NewParser()
 	} else if a.broker == BrokerType_Bitmex {
-		return &bitmex.Parser{}
+		return nil
 	}
 	panic("Unknown broker type")
 }
@@ -55,7 +54,6 @@ func (a *Aggregator) Start() {
 		return
 	}
 	go a.dataLoader.Load()
-
 	a.startLoop()
 }
 
@@ -65,20 +63,13 @@ func (a *Aggregator) startLoop() {
 	endCh := a.dataLoader.GetEndCh()
 	var execStats []*types.ExecStat
 	var err error
-	allStats := make([]*types.ExecStat, 100)
-	// var aggregatedStats map[clock.TimeSpan][]*brokers.AggregatedStat
-	// var processingSpans map[clock.TimeSpan]*brokers.AggregatedStat
-	execStatSpanMap := make(map[clock.TimeSpan][][]*types.ExecStat)
-	// TimeSpan毎に集約するデータを保存する配列を用意
-	for _, span := range a.spans {
-		execStatSpanMap[span] = make([][]*types.ExecStat, 128)
-	}
+	accumulatorMap := make(map[clock.TimeSpan][]*Accumulator)
 
 	i := 0
 L:
 	for {
 		select {
-		case data := <-dataCh:
+		case data := <-dataCh: // 1行ずつデータを受け取る
 			if len(data) == 0 {
 				break
 			}
@@ -93,41 +84,43 @@ L:
 				break
 			}
 
-			// 1m = 1 2 3
-			// 5m = 1 2 3
 			for _, execStat := range execStats {
 				for _, span := range a.spans { // 1m, 5m, ...
-					aggreStat, found := execStatSpanMap[span]
-					_ = aggreStat
+					timeIndex := execStat.GetTimeIndex(span)
+					accums, found := accumulatorMap[span]
 					if !found {
-						timeIndex := execStat.GetTimeIndex(span)
-						aggreStat := types.NewAggregatedStat(timeIndex)
-						_ = aggreStat
-						// processingSpans[span] = aggreStat
+						accums = make([]*Accumulator, 0, 32)
+						accum := NewAccumulator(timeIndex)
+						accums = append(accums, accum)
+						accumulatorMap[span] = accums
 					}
-					execTimeIndex := execStat.GetTimeIndex(span)
-					_ = execTimeIndex
-					// aggreTimeIndex := aggreStat.TimeIndex
-					// if execTimeIndex.Equal(aggreTimeIndex) {
-
-					// 	// TODO: aggreStateが現在のtimeIndexと同じなのでaggreTimeIndexを必要があれば更新する
-					// } else {
-					// 	// TODO: for-loopでaggreTimeIndexのIndexがtimeIndexになるまでIndexをインクリメントしたaggreStatを作成して保存
-					// }
-
+					accum := accums[len(accums)-1]
+					if !accum.IsSameTimeIndex(timeIndex) {
+						// 今回のTimeIndexが前回までと異なるということは前回までの
+						// Accumulatorのデータが全て溜まったということなので集計する
+						accum.Calculate()
+						//fmt.Printf("Span=%v, Count=%v, Time=%v\n", span, accum.Count(), accum.timeIndex.Time())
+						fmt.Println(accum.ToString())
+						accum = NewAccumulator(timeIndex)
+						accums = append(accums, accum)
+						accumulatorMap[span] = accums
+					}
+					accum.Add(execStat)
 				}
-
 			}
-
-			// allStats = append(allStats, stat)
-			// 1m, 5m, 10m,
-			// price = open, close, max, min
-			// volume = sum
-			//stat.
-
 		case <-endCh:
 			break L
 		}
 	}
-	fmt.Printf("all stats = %v\n", len(allStats))
+
+	// 全てのデータの読み込みが完了したので accumulatorMap に残っている accumulator の集約を行って終了
+	for _, span := range a.spans { // 1m, 5m, ...
+		accums, found := accumulatorMap[span]
+		if !found {
+			continue
+		}
+		accum := accums[len(accums)-1]
+		accum.Calculate()
+		fmt.Println(accum.ToString())
+	}
 }

@@ -22,7 +22,7 @@ type ExecStat struct {
 }
 
 func (e *ExecStat) GetTimeIndex(timeSpan clock.TimeSpan) clock.TimeIndex {
-	return e.Ts.MakeTimeIndex(timeSpan.Value, timeSpan.Span)
+	return e.Ts.GetTimeIndex(timeSpan.Value, timeSpan.Span)
 }
 
 type AggregatedStat struct {

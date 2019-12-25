@@ -1,11 +1,14 @@
 package clock
 
-import "time"
+import (
+	"time"
+)
 
+// SPAN 時間の単位
 type SPAN int8
 
 const (
-	SPAN_NANO        SPAN = 0
+	SPAN_NANOSECOND  SPAN = 0
 	SPAN_MICROSECOND SPAN = 1
 	SPAN_MILLISECOND SPAN = 2
 	SPAN_SECOND      SPAN = 3
@@ -26,8 +29,25 @@ func (t *TimeIndex) Equal(t2 TimeIndex) bool {
 	return false
 }
 
+func (t *TimeIndex) Time() time.Time {
+	sec := t.Index * int64(t.TimeSpan.Duration()/time.Second)
+	return time.Unix(sec, 0)
+}
+
+// NewTimeIndex は TimeIndex を返す.
+func NewTimeIndex(sec int64, value int64, span SPAN) TimeIndex {
+	// 引数secが秒のためそれより小さいspanは対応しない
+	if span == SPAN_NANOSECOND || span == SPAN_MICROSECOND || span == SPAN_MILLISECOND {
+		panic("Unsupported span")
+	}
+	return TimeIndex{
+		TimeSpan: TimeSpan{Value: value, Span: span},
+		Index:    int64(sec / (value * int64(SpanToDuration(span)/time.Second))),
+	}
+}
+
 func SpanToDuration(span SPAN) time.Duration {
-	if span == SPAN_NANO {
+	if span == SPAN_NANOSECOND {
 		return time.Nanosecond
 	} else if span == SPAN_MICROSECOND {
 		return time.Microsecond
@@ -41,16 +61,4 @@ func SpanToDuration(span SPAN) time.Duration {
 		return time.Hour
 	}
 	panic("Span2Duration : Unknown span")
-}
-
-// CreateTimeIndex は TimeIndex を返す.
-func CreateTimeIndex(sec int64, value int64, span SPAN) TimeIndex {
-	// 引数secが秒のためそれより小さいspanは対応しない
-	if span == SPAN_NANO || span == SPAN_MICROSECOND || span == SPAN_MILLISECOND {
-		panic("Unsupported span")
-	}
-	return TimeIndex{
-		TimeSpan: TimeSpan{Value: value, Span: span},
-		Index:    int64(sec / (value * int64(SpanToDuration(span)/time.Second))),
-	}
 }
